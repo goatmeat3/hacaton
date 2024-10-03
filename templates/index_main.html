@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор облака слов</title>
+
+    <!-- Подключаем шрифт Rubik -->
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+
+    <!-- Подключаем внешний CSS файл -->
+    <link rel="stylesheet" href="static/css/styles.css">
 </head>
 <body>
 
     <div class="container">
-        <h1>Генератор облака слов</h1>
+        <h1>ГЕНЕРАТОР ОБЛАКА СЛОВ</h1>
 
         <div class="main-content">
             <div class="button-container">
@@ -97,6 +101,89 @@
             } else {
                 changesAlert.style.display = 'block';
             }
+        });
+        let synonymDict = {}; // Глобальная переменная для хранения синонимов
+
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            previewContainer.style.display = 'none';
+            changesContainer.style.display = 'none';
+            previewAlert.style.display = 'none';
+            changesAlert.style.display = 'none';
+            fileInput.click();
+        });
+
+        document.getElementById('previewBtn').addEventListener('click', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                previewAlert.style.display = 'none'; // Убираем предупреждение
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewOutput.textContent = e.target.result;
+                    previewContainer.style.display = 'block';
+                    previewContainer.scrollTop = 0;
+                };
+                reader.readAsText(file);
+            } else {
+                previewAlert.style.display = 'block'; // Показываем предупреждение
+            }
+        });
+
+        document.getElementById('changesBtn').addEventListener('click', function() {
+            const text = previewOutput.textContent;
+            if (text === '') {
+                changesAlert.style.display = 'block'; // Показываем предупреждение
+                return;
+            }
+            changesAlert.style.display = 'none'; // Убираем предупреждение
+            const words = text.split(/\s+/).filter(Boolean);
+            synonymDict = {}; // Очищаем предыдущие данные
+
+            words.forEach(word => {
+                synonymDict[word] = null; // Заполняем словарь синонимов
+            });
+
+            document.querySelector('input[name="synonym_dict"]').value = JSON.stringify(synonymDict);
+
+            changesOutput.innerHTML = ''; // Очищаем предыдущие данные
+            for (const [word, synonyms] of Object.entries(synonymDict)) {
+                changesOutput.innerHTML += `<p>${word}: ${synonyms ? synonyms.join(', ') : 'нет синонимов'}</p>`;
+            }
+
+            changesContainer.style.display = 'block';
+            changesContainer.scrollTop = 0;
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', function(event) {
+            event.preventDefault();
+
+            const synonymDictValue = document.querySelector('input[name="synonym_dict"]').value;
+
+            fetch('/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ synonym_dict: synonymDictValue })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка при загрузке файла');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'synonyms.txt'; // Переименуйте файл на "synonyms.txt"
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url); // Освобождаем память
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+            });
         });
     </script>
 </body>
