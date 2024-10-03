@@ -1,0 +1,5 @@
+flask
+pymorphy3
+nltk
+pywin32
+winshell
