@@ -1,14 +1,5 @@
-torch
-transformers
-winshell
-pywin32
 flask
 pymorphy3
 nltk
-jsonschema
-python-docx
-sentence-transformers
-deep-translator
-pymorphy2
-util
-pathlib
+pywin32
+winshell

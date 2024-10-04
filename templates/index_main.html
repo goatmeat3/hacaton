@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор облака слов</title>
-
-    <!-- Подключаем шрифт Rubik -->
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500&display=swap" rel="stylesheet">
-
-    <!-- Подключаем внешний CSS файл -->
-    <link rel="stylesheet" href="static/css/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <div class="container">
-        <h1>ГЕНЕРАТОР ОБЛАКА СЛОВ</h1>
+        <h1>Генератор облака слов</h1>
 
         <div class="main-content">
             <div class="button-container">
@@ -27,10 +23,7 @@
                 <button id="changesBtn">Создать облако слов</button>
                 <div id="changesAlert" class="alert-box">Сначала загрузите файл для анализа!</div>
 
-                <form id="synonymForm" method="post" action="/download">
-                    <button id="saveBtn" type="submit">Скачать синонимы</button>
-                    <input type="hidden" name="synonym_dict" value="{{ synonym_dict|tojson }}">
-                </form>
+                <button id="saveLocalBtn">Скачать JSON на компьютер</button> <!-- Новая кнопка для локального скачивания -->
             </div>
 
             <div id="changesContainer" class="changes-container">
@@ -51,6 +44,7 @@
 
     <script>
         history.pushState(null, 'Русские слоны', '');
+
         const fileInput = document.getElementById('fileInput');
         const previewContainer = document.getElementById('previewContainer');
         const previewOutput = document.getElementById('previewOutput');
@@ -61,20 +55,35 @@
 
         const previewBtn = document.getElementById('previewBtn');
         const changesBtn = document.getElementById('changesBtn');
-        const saveBtn = document.getElementById('saveBtn');
+        const saveLocalBtn = document.getElementById('saveLocalBtn');
 
+        let fileUploaded = false; // Флаг, который указывает, что файл был загружен
+
+        // Нажатие на кнопку "Загрузить файл"
         document.getElementById('uploadBtn').addEventListener('click', function() {
             previewContainer.style.display = 'none';
             changesContainer.style.display = 'none';
             previewAlert.style.display = 'none';
             changesAlert.style.display = 'none';
             fileInput.click();
-
+            
+            // Показываем кнопки после загрузки
             setTimeout(() => previewBtn.classList.add('show'), 500);
             setTimeout(() => changesBtn.classList.add('show'), 1000);
-            setTimeout(() => saveBtn.classList.add('show'), 1500);
+            setTimeout(() => saveLocalBtn.classList.add('show'), 1500);
         });
 
+        // Проверяем, был ли выбран файл
+        fileInput.addEventListener('change', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                fileUploaded = true; // Файл загружен
+                previewAlert.style.display = 'none'; // Скрываем предупреждение
+                changesAlert.style.display = 'none'; // Скрываем предупреждение
+            }
+        });
+
+        // Предпросмотр загруженного файла
         previewBtn.addEventListener('click', function() {
             const file = fileInput.files[0];
             if (file) {
@@ -91,100 +100,77 @@
             }
         });
 
+        // Создание облака слов (анализ файла)
         changesBtn.addEventListener('click', function() {
-            const file = fileInput.files[0];
-            if (file) {
-                changesContainer.style.display = 'block';
-                changesOutput.textContent = 'Здесь будут ваши изменения...';
-                changesContainer.scrollTop = 0;
-                changesAlert.style.display = 'none';
-            } else {
-                changesAlert.style.display = 'block';
-            }
-        });
-        let synonymDict = {}; // Глобальная переменная для хранения синонимов
+            if (fileUploaded) { // Проверяем флаг, который указывает, что файл был загружен
+                const file = fileInput.files[0];
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
 
-        document.getElementById('uploadBtn').addEventListener('click', function() {
-            previewContainer.style.display = 'none';
-            changesContainer.style.display = 'none';
-            previewAlert.style.display = 'none';
-            changesAlert.style.display = 'none';
-            fileInput.click();
-        });
+                    fetch('/analyze', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(merged_words => {
+                        changesContainer.style.display = 'block';
+                        changesOutput.innerHTML = '';  // Очищаем блок перед вставкой данных
 
-        document.getElementById('previewBtn').addEventListener('click', function() {
-            const file = fileInput.files[0];
-            if (file) {
-                previewAlert.style.display = 'none'; // Убираем предупреждение
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewOutput.textContent = e.target.result;
-                    previewContainer.style.display = 'block';
-                    previewContainer.scrollTop = 0;
-                };
-                reader.readAsText(file);
-            } else {
-                previewAlert.style.display = 'block'; // Показываем предупреждение
-            }
-        });
+                        // Выводим данные из переменной merged_words
+                        for (const [word, count] of Object.entries(merged_words)) {
+                            changesOutput.innerHTML += `<p>${word}: ${count}</p>`;
+                        }
 
-        document.getElementById('changesBtn').addEventListener('click', function() {
-            const text = previewOutput.textContent;
-            if (text === '') {
-                changesAlert.style.display = 'block'; // Показываем предупреждение
-                return;
-            }
-            changesAlert.style.display = 'none'; // Убираем предупреждение
-            const words = text.split(/\s+/).filter(Boolean);
-            synonymDict = {}; // Очищаем предыдущие данные
-
-            words.forEach(word => {
-                synonymDict[word] = null; // Заполняем словарь синонимов
-            });
-
-            document.querySelector('input[name="synonym_dict"]').value = JSON.stringify(synonymDict);
-
-            changesOutput.innerHTML = ''; // Очищаем предыдущие данные
-            for (const [word, synonyms] of Object.entries(synonymDict)) {
-                changesOutput.innerHTML += `<p>${word}: ${synonyms ? synonyms.join(', ') : 'нет синонимов'}</p>`;
-            }
-
-            changesContainer.style.display = 'block';
-            changesContainer.scrollTop = 0;
-        });
-
-        document.getElementById('saveBtn').addEventListener('click', function(event) {
-            event.preventDefault();
-
-            const synonymDictValue = document.querySelector('input[name="synonym_dict"]').value;
-
-            fetch('/download', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ synonym_dict: synonymDictValue })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Ошибка при загрузке файла');
+                        changesContainer.scrollTop = 0;
+                        changesAlert.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при анализе:', error);
+                        changesAlert.style.display = 'block';
+                    });
                 }
-                return response.blob();
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'synonyms.txt'; // Переименуйте файл на "synonyms.txt"
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url); // Освобождаем память
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-            });
+            } else {
+                changesAlert.style.display = 'block'; // Показываем предупреждение, если файл не был загружен
+            }
         });
+
+        // Скачивание JSON файла с анализом
+        saveLocalBtn.addEventListener('click', function() {
+            if (fileUploaded) { // Проверяем, был ли загружен файл
+                const file = fileInput.files[0];
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    fetch('/analyze', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(merged_words => {
+                        // Создаем JSON строку
+                        const jsonStr = JSON.stringify(merged_words, null, 4);
+                        
+                        // Создаем элемент <a> для скачивания файла
+                        const a = document.createElement('a');
+                        const blob = new Blob([jsonStr], { type: 'application/json' });
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'synonyms.json';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при анализе:', error);
+                    });
+                }
+            } else {
+                alert('Пожалуйста, загрузите файл для анализа.');
+            }
+        });
+
     </script>
+
 </body>
 </html>
