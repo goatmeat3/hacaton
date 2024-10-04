@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор облака слов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Генератор облака слов</h1>
+
+        <div class="main-content">
+            <div class="button-container">
+                <button id="uploadBtn" class="show">Загрузить файл</button>
+                <input type="file" id="fileInput" style="display:none;" />
+
+                <button id="previewBtn">Предпросмотр файла</button>
+                <div id="previewAlert" class="alert-box">Сначала загрузите файл для предпросмотра!</div>
+
+                <button id="changesBtn">Создать облако слов</button>
+                <div id="changesAlert" class="alert-box">Сначала загрузите файл для анализа!</div>
+
+                <form id="synonymForm" method="post" action="/download">
+                    <button id="saveBtn" type="submit">Скачать синонимы</button>
+                    <input type="hidden" name="synonym_dict" value="{{ synonym_dict|tojson }}">
+                </form>
+            </div>
+
+            <div id="changesContainer" class="changes-container">
+                <h2>Анализ:</h2>
+                <div id="changesOutput">Здесь будет анализ текста...</div>
+            </div>
+        </div>
+
+        <div id="previewContainer" class="preview-container">
+            <h2>Предпросмотр содержимого файла:</h2>
+            <div id="previewOutput"></div>
+        </div>
+    </div>
+
+    <footer>
+        Сделано командой "русские слоны"
+    </footer>
+
+    <script>
+        history.pushState(null, 'Русские слоны', '');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewOutput = document.getElementById('previewOutput');
+        const changesContainer = document.getElementById('changesContainer');
+        const changesOutput = document.getElementById('changesOutput');
+        const previewAlert = document.getElementById('previewAlert');
+        const changesAlert = document.getElementById('changesAlert');
+
+        const previewBtn = document.getElementById('previewBtn');
+        const changesBtn = document.getElementById('changesBtn');
+        const saveBtn = document.getElementById('saveBtn');
+
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            previewContainer.style.display = 'none';
+            changesContainer.style.display = 'none';
+            previewAlert.style.display = 'none';
+            changesAlert.style.display = 'none';
+            fileInput.click();
+
+            setTimeout(() => previewBtn.classList.add('show'), 500);
+            setTimeout(() => changesBtn.classList.add('show'), 1000);
+            setTimeout(() => saveBtn.classList.add('show'), 1500);
+        });
+
+        previewBtn.addEventListener('click', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewOutput.textContent = e.target.result;
+                    previewContainer.style.display = 'block';
+                    previewContainer.scrollTop = 0;
+                };
+                reader.readAsText(file);
+                previewAlert.style.display = 'none';
+            } else {
+                previewAlert.style.display = 'block';
+            }
+        });
+
+        changesBtn.addEventListener('click', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                changesContainer.style.display = 'block';
+                changesOutput.textContent = 'Здесь будут ваши изменения...';
+                changesContainer.scrollTop = 0;
+                changesAlert.style.display = 'none';
+            } else {
+                changesAlert.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

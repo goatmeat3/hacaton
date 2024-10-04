@@ -3,12 +3,3 @@ pymorphy3
 nltk
 pywin32
 winshell
-torch
-jsonschema
-python-docx
-sentence-transformers
-deep-translator
-pymorphy2
-transformers
-util
-pathlib
