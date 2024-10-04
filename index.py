@@ -29,5 +29,4 @@ def merge_synonyms(json_filename, similarity_threshold=0.7):
 
         merged_words[current_synonym] = current_count
         processed_words.add(word1)
-
     return merged_words
