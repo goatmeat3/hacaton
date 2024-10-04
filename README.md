@@ -91,4 +91,4 @@ output/ - Папка для сохранения результатов анал
  
 Сделано командой "русские слоны"
 
-![end](data\end_photo.jpg)
+![end](data/end_photo.jpg)
